@@ -1,13 +1,14 @@
 {
   "expo": {
-    "name": "app",
-    "slug": "app",
+    "name": "NDECC Prep",
+    "slug": "ndecc-prep",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pcgamer.ndeccprep"
     },
     "android": {
       "adaptiveIcon": {
@@ -22,8 +23,21 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "expo-router",
       "expo-sqlite",
-      "expo-sharing"
-    ]
+      "expo-sharing",
+      "expo-audio",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Take photos of your practice projects.",
+          "photosPermission": "Attach photos of your practice projects."
+        }
+      ],
+      "expo-notifications",
+      "expo-font",
+      "expo-asset"
+    ],
+    "scheme": "ndeccprep"
   }
 }
