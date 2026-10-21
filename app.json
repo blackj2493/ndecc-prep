@@ -36,7 +36,8 @@
       ],
       "expo-notifications",
       "expo-font",
-      "expo-asset"
+      "expo-asset",
+      "expo-status-bar"
     ],
     "scheme": "ndeccprep"
   }
