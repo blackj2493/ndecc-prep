@@ -3,7 +3,7 @@ import { Alert, View } from 'react-native';
 import { Btn, Card, Divider, Empty, H, Row, Screen, Stat, T, useTheme } from '../../components/ui';
 import { REQ_BY_ID } from '../../lib/defaults';
 import { copyForClaude } from '../../lib/export';
-import { fmtMin, overview } from '../../lib/stats';
+import { criteriaStats, fmtMin, overview } from '../../lib/stats';
 import { pickData, useStore } from '../../lib/store';
 
 export default function Insights() {
@@ -11,6 +11,7 @@ export default function Insights() {
   const attempts = useStore((s) => s.attempts);
   const settings = useStore((s) => s.settings);
   const runs = useStore((s) => s.runs);
+  const criteria = useStore((s) => s.criteria);
   const ov = overview(attempts, settings);
   const spare = ov.examSec - ov.forecastSec;
   const mocks = runs.filter((r) => r.kind === 'mock');
@@ -18,6 +19,11 @@ export default function Insights() {
   const allTags = new Map<string, number>();
   for (const a of attempts) for (const t of a.tags) allTags.set(`${REQ_BY_ID[a.reqId].short}: ${t}`, (allTags.get(`${REQ_BY_ID[a.reqId].short}: ${t}`) ?? 0) + 1);
   const topMistakes = [...allTags.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const failing = ov.per
+    .flatMap((p) => criteriaStats(attempts, p.reqId, criteria[p.reqId]).map((cs) => ({ ...cs, reqId: p.reqId })))
+    .filter((cs) => cs.nc + cs.mc > 0)
+    .sort((a, b) => b.nc - a.nc || b.mc - a.mc)
+    .slice(0, 6);
   const ratio = (r: number | null) => (r == null ? '–' : `${Math.round(r * 100)}%`);
 
   if (!attempts.length)
@@ -88,9 +94,32 @@ export default function Insights() {
         </T>
       </Card>
 
-      <H>Most frequent mistakes</H>
+      <H>Weakest checklist criteria</H>
       <Card>
-        {topMistakes.length === 0 && <Empty text="No mistakes logged yet." />}
+        {failing.length === 0 && <Empty text="No criterion rated MC or Fail yet." />}
+        {failing.map((f, i) => (
+          <View key={`${f.reqId}-${f.id}`}>
+            {i > 0 && <Divider />}
+            <Row
+              title={`${REQ_BY_ID[f.reqId].short}: ${f.name}`}
+              subtitle={`${f.nc} fail · ${f.mc} MC of ${f.rated} rated${f.recentNc ? ` · ${f.recentNc} fail in last 5` : ''}`}
+              right={
+                <T weight="600" style={{ color: f.nc ? c.bad : c.warn }}>
+                  {Math.round((100 * (f.nc + f.mc)) / f.rated)}%
+                </T>
+              }
+              onPress={() => router.push(`/requirement/${f.reqId}`)}
+            />
+          </View>
+        ))}
+      </Card>
+      <T muted size={12}>
+        The percentage is the share of rated attempts where the criterion was MC or Fail.
+      </T>
+
+      <H>Most frequent findings</H>
+      <Card>
+        {topMistakes.length === 0 && <Empty text="No findings logged yet." />}
         {topMistakes.map(([t, n], i) => (
           <View key={t}>
             {i > 0 && <Divider />}

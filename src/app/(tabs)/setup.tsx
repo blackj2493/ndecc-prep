@@ -30,8 +30,8 @@ export default function Setup() {
         <Divider />
         <Row
           icon="tag"
-          title="Mistake lists"
-          subtitle="The mistakes you can select for each requirement, and infection control errors"
+          title="Checklist criteria"
+          subtitle="The NDEB criteria and findings for each requirement, and infection control errors"
           onPress={() => router.push('/settings/tags')}
         />
       </Card>

@@ -36,7 +36,7 @@ export default function Review() {
       {ungraded > 0 && (
         <Card style={{ backgroundColor: c.chip }}>
           <T>
-            Grade each project and log its mistakes while you still remember them. {ungraded} project
+            Rate the checklist for each project while you still remember the details. {ungraded} project
             {ungraded > 1 ? 's are' : ' is'} not graded yet.
           </T>
         </Card>
@@ -53,7 +53,7 @@ export default function Review() {
               subtitle={[
                 `${fmtMin(a.durationSec)} / target ${fmtMin(a.targetSec)}`,
                 a.grade ? GRADE_LABEL[a.grade] : 'Not graded',
-                a.tags.length ? `${a.tags.length} mistakes` : '',
+                a.tags.length ? `${a.tags.length} findings` : '',
               ]
                 .filter(Boolean)
                 .join(' · ')}

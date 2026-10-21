@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
-import { fmtDate, fmtMin } from '../lib/stats';
+import { fmtDate, fmtMin, type CriterionStats } from '../lib/stats';
 import type { Attempt } from '../lib/types';
 import { T, useTheme } from './ui';
 
@@ -90,7 +90,7 @@ export function TagBars({ tags }: { tags: { tag: string; count: number; recent: 
   if (!tags.length)
     return (
       <T muted size={14}>
-        No mistakes logged yet.
+        No findings logged yet.
       </T>
     );
   const max = Math.max(...tags.map((t) => t.count));
@@ -113,6 +113,58 @@ export function TagBars({ tags }: { tags: { tag: string; count: number; recent: 
           </View>
         </View>
       ))}
+    </View>
+  );
+}
+
+/** One stacked bar per criterion: OK / MC / Fail shares of the rated attempts. */
+export function CriteriaBars({ stats }: { stats: CriterionStats[] }) {
+  const c = useTheme();
+  const rows = stats.filter((s) => s.rated > 0).sort((a, b) => b.nc - a.nc || b.mc - a.mc);
+  if (!rows.length)
+    return (
+      <T muted size={14}>
+        Rate the checklist on an attempt to see this.
+      </T>
+    );
+  const seg = (n: number, total: number, color: string, first: boolean) =>
+    n > 0 ? (
+      <View
+        style={{
+          width: `${(100 * n) / total}%`,
+          backgroundColor: color,
+          height: 10,
+          borderLeftWidth: first ? 0 : 2,
+          borderLeftColor: c.card,
+        }}
+      />
+    ) : null;
+  return (
+    <View style={{ gap: 10 }}>
+      {rows.map((s) => (
+        <View key={s.id} style={{ gap: 3 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
+            <T size={14} style={{ flex: 1 }} numberOfLines={1}>
+              {s.name}
+            </T>
+            <T size={13} muted>
+              {s.nc ? `${s.nc} fail` : ''}
+              {s.nc && s.mc ? ' · ' : ''}
+              {s.mc ? `${s.mc} MC` : ''}
+              {!s.nc && !s.mc ? 'all OK' : ''} / {s.rated}
+              {s.recentNc ? ` (${s.recentNc} fail in last 5)` : ''}
+            </T>
+          </View>
+          <View style={{ flexDirection: 'row', height: 10, borderRadius: 5, overflow: 'hidden', backgroundColor: c.border }}>
+            {seg(s.c, s.rated, c.good, true)}
+            {seg(s.mc, s.rated, c.warn, s.c === 0)}
+            {seg(s.nc, s.rated, c.bad, s.c + s.mc === 0)}
+          </View>
+        </View>
+      ))}
+      <T muted size={12}>
+        Green = OK, amber = minimally competent, red = fail. Worst criteria first.
+      </T>
     </View>
   );
 }

@@ -1,31 +1,26 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Image, Pressable, View } from 'react-native';
-import { Btn, Card, Chip, Empty, H, Input, MinutesField, Screen, T, useTheme } from '../../components/ui';
+import { Checklist } from '../../components/Checklist';
+import { Btn, Card, Chip, Empty, H, Input, MinutesField, Screen, T } from '../../components/ui';
+import { overallGrade } from '../../lib/criteria';
 import { REQ_BY_ID, REQUIREMENTS } from '../../lib/defaults';
 import { addPhoto, deletePhoto, photoUri } from '../../lib/photos';
 import { uid } from '../../lib/run';
 import { fmtDate } from '../../lib/stats';
 import { useStore } from '../../lib/store';
-import type { Attempt, Grade, ReqId } from '../../lib/types';
-
-const GRADES: { g: Grade; label: string }[] = [
-  { g: 'C', label: 'Competent' },
-  { g: 'MC', label: 'Min. competent' },
-  { g: 'NC', label: 'Not competent' },
-];
+import type { Attempt, ReqId } from '../../lib/types';
 
 export default function AttemptScreen() {
-  const c = useTheme();
   const { id, reqId } = useLocalSearchParams<{ id: string; reqId?: ReqId }>();
   const isNew = id === 'new';
   const existing = useStore((s) => s.attempts.find((a) => a.id === id));
   const settings = useStore((s) => s.settings);
   const sets = useStore((s) => s.sets);
-  const allTags = useStore((s) => s.tags);
+  const allCriteria = useStore((s) => s.criteria);
   const upsertAttempt = useStore((s) => s.upsertAttempt);
   const deleteAttempt = useStore((s) => s.deleteAttempt);
-  const setTags = useStore((s) => s.setTags);
+  const setCriteria = useStore((s) => s.setCriteria);
 
   const [draft, setDraft] = useState<Attempt | undefined>(() => {
     if (existing) return existing;
@@ -41,12 +36,12 @@ export default function AttemptScreen() {
       targetSec: settings.targets[r] * 60,
       repeats: 0,
       grade: null,
+      ratings: {},
       tags: [],
       notes: '',
       photos: [],
     };
   });
-  const [newTag, setNewTag] = useState('');
 
   // Existing attempts save on every change; a new one saves with the button.
   const commit = (fn: (d: Attempt) => Attempt) =>
@@ -59,10 +54,17 @@ export default function AttemptScreen() {
 
   if (!draft) return <Empty text="This attempt no longer exists." />;
   const patch = (p: Partial<Attempt>) => commit((d) => ({ ...d, ...p }));
-  const tags = allTags[draft.reqId] ?? [];
-  const extra = draft.tags.filter((t) => !tags.includes(t));
-  const toggle = (t: string) =>
-    patch({ tags: draft.tags.includes(t) ? draft.tags.filter((x) => x !== t) : [...draft.tags, t] });
+  const criteria = allCriteria[draft.reqId] ?? [];
+  const addDetail = (criterionId: string, detail: string) =>
+    setCriteria(
+      draft.reqId,
+      criteria.map((cr) =>
+        cr.id === criterionId && !cr.details.includes(detail) ? { ...cr, details: [...cr.details, detail] } : cr,
+      ),
+    );
+  // Findings from before the checklist, or from a renamed criterion.
+  const names = criteria.map((cr) => `${cr.name}: `);
+  const legacy = draft.tags.filter((t) => !names.some((n) => t.startsWith(n)));
 
   const photo = async (src: 'camera' | 'library') => {
     const name = await addPhoto(src);
@@ -82,7 +84,7 @@ export default function AttemptScreen() {
                 key={r.id}
                 label={r.short}
                 selected={draft.reqId === r.id}
-                onPress={() => patch({ reqId: r.id, tags: [], targetSec: settings.targets[r.id] * 60 })}
+                onPress={() => patch({ reqId: r.id, tags: [], ratings: {}, grade: null, targetSec: settings.targets[r.id] * 60 })}
               />
             ))}
           </View>
@@ -137,42 +139,23 @@ export default function AttemptScreen() {
         </T>
       </Card>
 
-      <H>Self-grade</H>
-      <View style={{ flexDirection: 'row', gap: 6 }}>
-        {GRADES.map(({ g, label }) => (
-          <Chip
-            key={g}
-            label={label}
-            selected={draft.grade === g}
-            color={g === 'C' ? c.good : g === 'MC' ? c.warn : c.bad}
-            onPress={() => patch({ grade: draft.grade === g ? null : g })}
-          />
-        ))}
-      </View>
-
-      <H>Mistakes</H>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-        {[...tags, ...extra].map((t) => (
-          <Chip key={t} label={t} selected={draft.tags.includes(t)} onPress={() => toggle(t)} />
-        ))}
-      </View>
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        <Input style={{ flex: 1 }} value={newTag} onChangeText={setNewTag} placeholder="New mistake, e.g. DL box too wide" />
-        <Btn
-          title="Add"
-          kind="secondary"
-          disabled={!newTag.trim()}
-          onPress={() => {
-            const t = newTag.trim();
-            if (!tags.includes(t)) setTags(draft.reqId, [...tags, t]);
-            if (!draft.tags.includes(t)) patch({ tags: [...draft.tags, t] });
-            setNewTag('');
-          }}
+      <H>NDEB checklist</H>
+      <Card>
+        <Checklist
+          criteria={criteria}
+          ratings={draft.ratings}
+          tags={draft.tags}
+          onChange={(ratings, tags) => patch({ ratings, tags, grade: overallGrade(ratings) })}
+          onAddDetail={addDetail}
         />
-      </View>
-      <T muted size={12}>
-        A new mistake is added to the list for {REQ_BY_ID[draft.reqId].short}, so you can select it again next time.
-      </T>
+      </Card>
+      {legacy.length > 0 && (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+          {legacy.map((t) => (
+            <Chip key={t} label={`${t}  ✕`} onPress={() => patch({ tags: draft.tags.filter((x) => x !== t) })} />
+          ))}
+        </View>
+      )}
 
       <H>Notes</H>
       <Input

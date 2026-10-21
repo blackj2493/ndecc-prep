@@ -242,7 +242,8 @@ export function runToRecords(
       position: idx + 1,
       repeats: i.repeats,
       grade: null,
-      tags: i.repeats > 0 ? ['Restarted / repeated'] : [],
+      ratings: {},
+      tags: [],
       notes: '',
       photos: [],
     }));

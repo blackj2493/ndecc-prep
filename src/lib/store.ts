@@ -1,11 +1,13 @@
 import Storage from 'expo-sqlite/kv-store';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { DEFAULT_SETS, DEFAULT_SETTINGS, DEFAULT_TAGS, IC_CRITICAL, IC_ERRORS } from './defaults';
+import { DEFAULT_CRITERIA } from './criteria';
+import { DEFAULT_SETS, DEFAULT_SETTINGS, IC_CRITICAL, IC_ERRORS } from './defaults';
 import type {
   ActiveRun,
   Attempt,
   Campaign,
+  Criterion,
   PracticeSet,
   ReqId,
   RunRecord,
@@ -18,7 +20,7 @@ export interface Data {
   settings: Settings;
   attempts: Attempt[];
   runs: RunRecord[];
-  tags: Record<ReqId, string[]>;
+  criteria: Record<ReqId, Criterion[]>;
   icTags: string[];
   /** Free technique notes for each requirement ("my method"). */
   reqNotes: Partial<Record<ReqId, string>>;
@@ -37,7 +39,7 @@ interface State extends Data {
   deleteRun: (id: string) => void;
   upsertAttempt: (a: Attempt) => void;
   deleteAttempt: (id: string) => void;
-  setTags: (reqId: ReqId, tags: string[]) => void;
+  setCriteria: (reqId: ReqId, list: Criterion[]) => void;
   setIcTags: (tags: string[]) => void;
   setReqNotes: (reqId: ReqId, text: string) => void;
   replaceAll: (data: Data) => void;
@@ -49,7 +51,7 @@ export const initialData = (): Data => ({
   settings: DEFAULT_SETTINGS,
   attempts: [],
   runs: [],
-  tags: DEFAULT_TAGS,
+  criteria: DEFAULT_CRITERIA,
   icTags: [...IC_ERRORS, ...IC_CRITICAL],
   reqNotes: {},
 });
@@ -83,15 +85,31 @@ export const useStore = create<State>()(
           attempts: s.attempts.filter((a) => a.id !== id),
           runs: s.runs.map((r) => ({ ...r, attemptIds: r.attemptIds.filter((x) => x !== id) })),
         })),
-      setTags: (reqId, tags) => set((s) => ({ tags: { ...s.tags, [reqId]: tags } })),
+      setCriteria: (reqId, list) => set((s) => ({ criteria: { ...s.criteria, [reqId]: list } })),
       setIcTags: (icTags) => set({ icTags }),
       setReqNotes: (reqId, text) => set((s) => ({ reqNotes: { ...s.reqNotes, [reqId]: text } })),
-      replaceAll: (data) => set({ ...initialData(), ...data }),
+      replaceAll: (data) =>
+        set({
+          ...initialData(),
+          ...data,
+          // Backups from before the checklist have no ratings.
+          attempts: data.attempts.map((a) => ({ ...a, ratings: a.ratings ?? {} })),
+        }),
     }),
     {
       name: 'ndecc-prep',
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => Storage),
+      // v2 replaced the free mistake lists with the NDEB checklist.
+      migrate: (persisted, version) => {
+        const s = persisted as Record<string, unknown> & { attempts?: Attempt[] };
+        if (version < 2) {
+          delete s.tags;
+          s.criteria = DEFAULT_CRITERIA;
+          s.attempts = (s.attempts ?? []).map((a) => ({ ...a, ratings: a.ratings ?? {} }));
+        }
+        return s as unknown as State;
+      },
     },
   ),
 );
@@ -102,7 +120,7 @@ export const pickData = (s: State): Data => ({
   settings: s.settings,
   attempts: s.attempts,
   runs: s.runs,
-  tags: s.tags,
+  criteria: s.criteria,
   icTags: s.icTags,
   reqNotes: s.reqNotes,
 });

@@ -1,5 +1,5 @@
 import { REQUIREMENTS } from './defaults';
-import type { Attempt, ReqId, Settings } from './types';
+import type { Attempt, Criterion, ReqId, Settings } from './types';
 
 export function fmtClock(ms: number, showHours = true) {
   const neg = ms < 0;
@@ -128,4 +128,33 @@ export function overview(attempts: Attempt[], settings: Settings): Overview {
     },
     weakest,
   };
+}
+
+export interface CriterionStats {
+  id: string;
+  name: string;
+  rated: number;
+  c: number;
+  mc: number;
+  nc: number;
+  /** Fails in the last 5 rated attempts. */
+  recentNc: number;
+}
+
+/** How often each checklist criterion was OK, minimally competent or failed. */
+export function criteriaStats(attempts: Attempt[], reqId: ReqId, criteria: Criterion[]): CriterionStats[] {
+  const list = attempts.filter((a) => a.reqId === reqId && Object.keys(a.ratings ?? {}).length).sort(byDate);
+  const recent = list.slice(-5);
+  return criteria.map((cr) => {
+    const r = list.map((a) => a.ratings[cr.id]).filter(Boolean);
+    return {
+      id: cr.id,
+      name: cr.name,
+      rated: r.length,
+      c: r.filter((g) => g === 'C').length,
+      mc: r.filter((g) => g === 'MC').length,
+      nc: r.filter((g) => g === 'NC').length,
+      recentNc: recent.filter((a) => a.ratings[cr.id] === 'NC').length,
+    };
+  });
 }

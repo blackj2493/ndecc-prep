@@ -3,10 +3,11 @@ import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { REQ_BY_ID } from './defaults';
-import { fmtMin, overview } from './stats';
+import { criteriaStats, fmtMin, overview } from './stats';
 import type { Data } from './store';
 
 const GRADE = { C: 'Competent', MC: 'Minimally competent', NC: 'Not competent' } as const;
+const SHORT = { C: 'OK', MC: 'MC', NC: 'FAIL' } as const;
 
 /** A prompt plus the data, for pasting into the Claude app. */
 export function claudeReport(data: Data, reqId?: string): string {
@@ -18,6 +19,7 @@ export function claudeReport(data: Data, reqId?: string): string {
   const lines: string[] = [];
   lines.push(
     'I am preparing for the NDEB NDECC Clinical Skills exam (7 requirements on a manikin, 8 h, all 7 must pass).',
+    'Each attempt is self-rated on an NDEB-style checklist: OK = competent, MC = minimally competent (still a pass), FAIL = not competent.',
     'Below is my practice log. Please analyse it as an experienced clinical instructor:',
     '1. My weakest requirements, for speed AND for quality, with evidence from the log.',
     '2. Recurring mistakes, and whether each one is getting better or worse.',
@@ -39,6 +41,10 @@ export function claudeReport(data: Data, reqId?: string): string {
         `pass ${p.passPct == null ? '–' : Math.round(p.passPct) + '%'} of ${p.graded} graded; ` +
         `top mistakes: ${p.topTags.slice(0, 4).map((t) => `${t.tag} (${t.count})`).join(', ') || 'none'}`,
     );
+    const weak = criteriaStats(data.attempts, p.reqId, data.criteria[p.reqId])
+      .filter((cs) => cs.nc + cs.mc > 0)
+      .map((cs) => `${cs.name} ${cs.nc} fail/${cs.mc} MC of ${cs.rated}`);
+    if (weak.length) lines.push(`  Checklist problems: ${weak.join('; ')}`);
     const notes = data.reqNotes[p.reqId];
     if (notes) lines.push(`  My technique notes: ${notes.replace(/\s+/g, ' ')}`);
   }
@@ -53,7 +59,15 @@ export function claudeReport(data: Data, reqId?: string): string {
         `${fmtMin(a.durationSec)} (target ${fmtMin(a.targetSec)})`,
         a.examOffsetSec != null ? `started at ${fmtMin(a.examOffsetSec)} into the mock` : '',
         a.grade ? GRADE[a.grade] : 'not graded',
-        a.tags.length ? `mistakes: ${a.tags.join(', ')}` : '',
+        Object.keys(a.ratings).length
+          ? 'checklist: ' +
+            (data.criteria[a.reqId] ?? [])
+              .filter((cr) => a.ratings[cr.id] && a.ratings[cr.id] !== 'C')
+              .map((cr) => `${cr.name}=${SHORT[a.ratings[cr.id]]}`)
+              .join(', ')
+              .replace(/^$/, 'all OK')
+          : '',
+        a.tags.length ? `findings: ${a.tags.join(', ')}` : '',
         a.notes ? `notes: ${a.notes.replace(/\s+/g, ' ')}` : '',
       ]
         .filter(Boolean)

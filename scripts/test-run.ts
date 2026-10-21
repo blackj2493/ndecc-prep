@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { DEFAULT_SETS, DEFAULT_SETTINGS } from '../src/lib/defaults';
 import * as R from '../src/lib/run';
-import { overview, reqStats } from '../src/lib/stats';
+import { DEFAULT_CRITERIA, overallGrade } from '../src/lib/criteria';
+import { criteriaStats, overview, reqStats } from '../src/lib/stats';
 
 const M = 60000;
 const set = DEFAULT_SETS[0];
@@ -54,4 +55,19 @@ const st = reqStats(attempts, 'amalgam');
 assert.equal(st.medianSec, 45 * 60);
 const ov = overview(attempts, DEFAULT_SETTINGS);
 assert.equal(ov.examSec, 480 * 60);
-console.log('all run/stat checks passed; forecast', ov.forecastSec / 60, 'min');
+// Checklist: the grade is the worst rating.
+assert.equal(overallGrade({}), null);
+assert.equal(overallGrade({ margin: 'C', contact: 'C' }), 'C');
+assert.equal(overallGrade({ margin: 'C', contact: 'MC' }), 'MC');
+assert.equal(overallGrade({ margin: 'NC', contact: 'MC' }), 'NC');
+for (const [req, list] of Object.entries(DEFAULT_CRITERIA)) {
+  const ids = list.map((c) => c.id);
+  assert.equal(new Set(ids).size, ids.length, `duplicate criterion id in ${req}`);
+  assert.ok(ids.includes('critical') && ids.includes('damage'), `${req} lacks critical/damage`);
+}
+const rated = attempts.map((a, i) => (a.reqId === 'mod' ? { ...a, ratings: { depth: 'NC' as const, width: 'C' as const } } : a));
+const cs = criteriaStats(rated, 'mod', DEFAULT_CRITERIA.mod);
+assert.equal(cs.find((x) => x.id === 'depth')!.nc, 1);
+assert.equal(cs.find((x) => x.id === 'width')!.c, 1);
+assert.equal(cs.find((x) => x.id === 'boxSeat')!.rated, 0);
+console.log('all run/stat/checklist checks passed; forecast', ov.forecastSec / 60, 'min');

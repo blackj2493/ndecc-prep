@@ -1,11 +1,11 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Alert, Image, View } from 'react-native';
-import { TagBars, TimeChart } from '../../components/charts';
+import { CriteriaBars, TagBars, TimeChart } from '../../components/charts';
 import { Btn, Card, Divider, Empty, H, Input, Row, Screen, Stat, T } from '../../components/ui';
 import { copyForClaude } from '../../lib/export';
 import { REQ_BY_ID } from '../../lib/defaults';
 import { photoUri } from '../../lib/photos';
-import { fmtDate, fmtMin, median, reqStats } from '../../lib/stats';
+import { criteriaStats, fmtDate, fmtMin, median, reqStats } from '../../lib/stats';
 import { pickData, useStore } from '../../lib/store';
 import type { ReqId } from '../../lib/types';
 
@@ -18,6 +18,7 @@ export default function RequirementScreen() {
   const target = useStore((s) => s.settings.targets[id]);
   const notes = useStore((s) => s.reqNotes[id] ?? '');
   const setReqNotes = useStore((s) => s.setReqNotes);
+  const criteria = useStore((s) => s.criteria[id]);
   const attempts = all.filter((a) => a.reqId === id).sort((a, b) => b.date.localeCompare(a.date));
   const s = reqStats(all, id);
 
@@ -56,7 +57,12 @@ export default function RequirementScreen() {
         <TimeChart attempts={attempts} targetMin={target} />
       </Card>
 
-      <H>Mistakes</H>
+      <H>Checklist results</H>
+      <Card>
+        <CriteriaBars stats={criteriaStats(all, id, criteria)} />
+      </Card>
+
+      <H>Most frequent findings</H>
       <Card>
         <TagBars tags={s.topTags} />
       </Card>

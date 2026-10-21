@@ -60,6 +60,16 @@ export interface Settings {
 
 export type Grade = 'C' | 'MC' | 'NC';
 
+/** One line of the NDEB-style checklist for a requirement. */
+export interface Criterion {
+  id: string;
+  name: string;
+  /** Short summary of the NDEB thresholds. */
+  hint: string;
+  /** Typical findings you can tag, stored on the attempt as "Name: detail". */
+  details: string[];
+}
+
 export interface Attempt {
   id: string;
   runId?: string;
@@ -75,7 +85,11 @@ export interface Attempt {
   examOffsetSec?: number;
   position?: number;
   repeats: number;
+  /** Worst checklist rating. Null when nothing is rated. */
   grade: Grade | null;
+  /** Checklist ratings by criterion id. */
+  ratings: Record<string, Grade>;
+  /** Findings, as "Criterion: detail". */
   tags: string[];
   notes: string;
   /** File names inside the app's photo folder. */
