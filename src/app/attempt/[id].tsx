@@ -1,5 +1,5 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Alert, Image, Pressable, View } from 'react-native';
 import { Checklist } from '../../components/Checklist';
 import { Btn, Card, Chip, Empty, H, Input, MinutesField, Screen, T } from '../../components/ui';
@@ -44,13 +44,17 @@ export default function AttemptScreen() {
   });
 
   // Existing attempts save on every change; a new one saves with the button.
-  const commit = (fn: (d: Attempt) => Attempt) =>
-    setDraft((d) => {
-      if (!d) return d;
-      const next = fn(d);
-      if (!isNew) upsertAttempt(next);
-      return next;
-    });
+  // The ref holds the newest draft, so a change after an await (a photo) does not undo an
+  // earlier change. The store write stays outside the state updater: React forbids
+  // updating another component's state during render.
+  const latest = useRef(draft);
+  const commit = (fn: (d: Attempt) => Attempt) => {
+    if (!latest.current) return;
+    const next = fn(latest.current);
+    latest.current = next;
+    setDraft(next);
+    if (!isNew) upsertAttempt(next);
+  };
 
   if (!draft) return <Empty text="This attempt no longer exists." />;
   const patch = (p: Partial<Attempt>) => commit((d) => ({ ...d, ...p }));
