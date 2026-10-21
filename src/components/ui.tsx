@@ -1,4 +1,4 @@
-import { SymbolView, type SFSymbol } from 'expo-symbols';
+import { Icon, type IconName } from './Icon';
 import type { ReactNode } from 'react';
 import {
   Pressable,
@@ -107,7 +107,7 @@ export function Btn({
   title: string;
   onPress: () => void;
   kind?: 'primary' | 'secondary' | 'danger' | 'plain';
-  icon?: SFSymbol;
+  icon?: IconName;
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
   big?: boolean;
@@ -134,7 +134,7 @@ export function Btn({
         style,
       ]}
     >
-      {icon && <SymbolView name={icon} tintColor={fg} size={big ? 24 : 18} />}
+      {icon && <Icon name={icon} color={fg} size={big ? 24 : 18} />}
       <Text style={{ color: fg, fontSize: big ? 20 : 16, fontWeight: '600' }}>{title}</Text>
     </Pressable>
   );
@@ -151,7 +151,7 @@ export function Row({
   subtitle?: string;
   right?: ReactNode;
   onPress?: () => void;
-  icon?: SFSymbol;
+  icon?: IconName;
 }) {
   const c = useTheme();
   return (
@@ -166,7 +166,7 @@ export function Row({
         opacity: pressed ? 0.6 : 1,
       })}
     >
-      {icon && <SymbolView name={icon} tintColor={c.accent} size={22} />}
+      {icon && <Icon name={icon} color={c.accent} size={22} />}
       <View style={{ flex: 1 }}>
         <T weight="500">{title}</T>
         {subtitle ? (
@@ -176,7 +176,7 @@ export function Row({
         ) : null}
       </View>
       {right}
-      {onPress && <SymbolView name="chevron.right" tintColor={c.muted} size={14} />}
+      {onPress && <Icon name="chevron.right" color={c.muted} size={14} />}
     </Pressable>
   );
 }

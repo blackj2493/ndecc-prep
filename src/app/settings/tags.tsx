@@ -1,21 +1,19 @@
 import { Stack } from 'expo-router';
 import { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { Btn, Card, Chip, H, Input, Screen, T } from '../../components/ui';
 import { DEFAULT_CRITERIA } from '../../lib/criteria';
 import { REQUIREMENTS } from '../../lib/defaults';
 import { uid } from '../../lib/run';
 import { useStore } from '../../lib/store';
 import type { Criterion, ReqId } from '../../lib/types';
+import { confirm } from '../../lib/dialog';
 
 type Key = ReqId | 'ic';
 
 /** Removes a chip after a confirmation. */
 const confirmRemove = (label: string, onYes: () => void) =>
-  Alert.alert(`Remove "${label}"?`, 'Attempts that already have it keep it.', [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Remove', style: 'destructive', onPress: onYes },
-  ]);
+  confirm(`Remove "${label}"?`, 'Attempts that already have it keep it.', 'Remove', onYes);
 
 function CriterionCard({
   cr,
@@ -144,10 +142,7 @@ export default function CriteriaSetup() {
             title="Reset this requirement to the NDEB defaults"
             kind="plain"
             onPress={() =>
-              Alert.alert('Reset the criteria?', 'Your added criteria and findings for this requirement are removed.', [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Reset', style: 'destructive', onPress: () => save(DEFAULT_CRITERIA[key]) },
-              ])
+              confirm('Reset the criteria?', 'Your added criteria and findings for this requirement are removed.', 'Reset', () => save(DEFAULT_CRITERIA[key]))
             }
           />
         </>

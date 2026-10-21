@@ -48,3 +48,6 @@ export async function scheduleAlerts(alerts: RunAlert[], fired: string[]) {
 }
 
 export const cancelAlerts = () => Notifications.cancelAllScheduledNotificationsAsync();
+
+/** Web only: browsers allow sound only after a tap. Native needs nothing. */
+export function unlockAudio() {}

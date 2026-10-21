@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
+import { Icon } from '../../components/Icon';
 import { Pressable, View } from 'react-native';
 import { Card, Divider, MinutesField, Screen, T, useTheme } from '../../components/ui';
 import { REQ_BY_ID } from '../../lib/defaults';
@@ -35,10 +35,10 @@ export default function Defaults() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 }}>
               <View style={{ gap: 6 }}>
                 <Pressable onPress={() => move(i, -1)} hitSlop={8}>
-                  <SymbolView name="chevron.up" tintColor={i ? c.accent : c.border} size={18} />
+                  <Icon name="chevron.up" color={i ? c.accent : c.border} size={18} />
                 </Pressable>
                 <Pressable onPress={() => move(i, 1)} hitSlop={8}>
-                  <SymbolView name="chevron.down" tintColor={i < seq.length - 1 ? c.accent : c.border} size={18} />
+                  <Icon name="chevron.down" color={i < seq.length - 1 ? c.accent : c.border} size={18} />
                 </Pressable>
               </View>
               <T style={{ flex: 1 }} weight="500">

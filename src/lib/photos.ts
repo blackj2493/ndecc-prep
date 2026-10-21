@@ -31,3 +31,17 @@ export function deletePhoto(name: string) {
   const f = new File(dir(), name);
   if (f.exists) f.delete();
 }
+
+export const hasPhoto = async (name: string) => new File(dir(), name).exists;
+
+/** For the cloud backup. */
+export async function readPhotoBase64(name: string): Promise<string | null> {
+  const f = new File(dir(), name);
+  return f.exists ? f.base64() : null;
+}
+
+export async function writePhotoBase64(name: string, b64: string) {
+  const f = new File(dir(), name);
+  if (!f.exists) f.create();
+  f.write(b64, { encoding: 'base64' });
+}

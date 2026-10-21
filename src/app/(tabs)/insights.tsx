@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { Btn, Card, Divider, Empty, H, Row, Screen, Stat, T, useTheme } from '../../components/ui';
 import { REQ_BY_ID } from '../../lib/defaults';
 import { copyForClaude } from '../../lib/export';
 import { criteriaStats, fmtMin, overview } from '../../lib/stats';
 import { pickData, useStore } from '../../lib/store';
+import { notify } from '../../lib/dialog';
 
 export default function Insights() {
   const c = useTheme();
@@ -139,7 +140,7 @@ export default function Insights() {
           icon="doc.on.doc"
           onPress={async () => {
             await copyForClaude(pickData(useStore.getState()));
-            Alert.alert('Copied', 'Open the Claude app and paste it into a new chat.');
+            notify('Copied', 'Open the Claude app and paste it into a new chat.');
           }}
         />
       </Card>

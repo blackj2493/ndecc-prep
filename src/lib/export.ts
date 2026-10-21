@@ -1,7 +1,4 @@
 import * as Clipboard from 'expo-clipboard';
-import * as DocumentPicker from 'expo-document-picker';
-import { File, Paths } from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
 import { REQ_BY_ID } from './defaults';
 import { criteriaStats, fmtMin, overview } from './stats';
 import type { Data } from './store';
@@ -85,18 +82,4 @@ export async function copyForClaude(data: Data, reqId?: string) {
   await Clipboard.setStringAsync(claudeReport(data, reqId));
 }
 
-export async function shareBackup(data: Data) {
-  const f = new File(Paths.cache, `ndecc-prep-backup-${new Date().toISOString().slice(0, 10)}.json`);
-  if (f.exists) f.delete();
-  f.create();
-  await f.write(JSON.stringify({ app: 'ndecc-prep', version: 1, data }, null, 1));
-  await Sharing.shareAsync(f.uri, { mimeType: 'application/json', UTI: 'public.json' });
-}
-
-export async function pickBackup(): Promise<Data | null> {
-  const res = await DocumentPicker.getDocumentAsync({ type: 'application/json', copyToCacheDirectory: true });
-  if (res.canceled || !res.assets?.length) return null;
-  const parsed = JSON.parse(await new File(res.assets[0].uri).text());
-  if (parsed?.app !== 'ndecc-prep' || !parsed.data?.attempts) throw new Error('This file is not an NDECC Prep backup.');
-  return parsed.data as Data;
-}
+export { pickBackup, shareBackup } from './backupFile';

@@ -1,10 +1,12 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router/react-navigation';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, View, useColorScheme } from 'react-native';
+import { useEffect, useSyncExternalStore } from 'react';
+import { ActivityIndicator, Platform, View, useColorScheme } from 'react-native';
 import { useTheme } from '../components/ui';
 import { initAlerts } from '../lib/alerts';
+import { startAutoBackup } from '../lib/cloud';
+import { requestPersistentStorage } from '../lib/kv';
 import { useStore } from '../lib/store';
 
 export default function RootLayout() {
@@ -15,12 +17,23 @@ export default function RootLayout() {
     ...base,
     colors: { ...base.colors, primary: c.accent, background: c.bg, card: c.card, text: c.text, border: c.border },
   };
-  const [ready, setReady] = useState(() => useStore.persist.hasHydrated());
+  // Nothing renders until the saved data has loaded. A screen built on the empty defaults
+  // could save them over the real data. useSyncExternalStore also covers the case where
+  // loading finishes before this component subscribes.
+  const ready = useSyncExternalStore(
+    (cb) => useStore.persist.onFinishHydration(cb),
+    () => useStore.persist.hasHydrated(),
+  );
 
   useEffect(() => {
     initAlerts().catch(() => {});
-    return useStore.persist.onFinishHydration(() => setReady(true));
+    requestPersistentStorage().catch(() => {});
+    if (Platform.OS === 'web' && 'serviceWorker' in navigator && location.hostname !== 'localhost')
+      navigator.serviceWorker.register('/ndecc-prep/sw.js', { scope: '/ndecc-prep/' }).catch(() => {});
   }, []);
+
+  // The backup must start only after the saved data has loaded, or it would see an empty app.
+  useEffect(() => (ready ? startAutoBackup() : undefined), [ready]);
 
   if (!ready)
     return (

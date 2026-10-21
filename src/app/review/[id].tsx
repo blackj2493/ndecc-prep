@@ -1,10 +1,11 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { Btn, Card, Chip, Divider, Empty, H, Input, Row, Screen, T, useTheme } from '../../components/ui';
 import { REQ_BY_ID } from '../../lib/defaults';
 import { deletePhoto } from '../../lib/photos';
 import { fmtDate, fmtMin } from '../../lib/stats';
 import { useStore } from '../../lib/store';
+import { confirm } from '../../lib/dialog';
 
 const GRADE_LABEL = { C: 'Competent', MC: 'Min. competent', NC: 'Not competent' } as const;
 
@@ -103,18 +104,11 @@ export default function Review() {
         title="Delete this run"
         kind="plain"
         onPress={() =>
-          Alert.alert('Delete this run?', 'Its projects are deleted from the journal too.', [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Delete',
-              style: 'destructive',
-              onPress: () => {
+          confirm('Delete this run?', 'Its projects are deleted from the journal too.', 'Delete', () => {
                 list.forEach((a) => a.photos.forEach(deletePhoto));
                 deleteRun(run.id);
                 router.back();
-              },
-            },
-          ])
+              })
         }
       />
     </Screen>

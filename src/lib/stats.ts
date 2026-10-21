@@ -19,6 +19,15 @@ export function fmtMin(sec: number | null | undefined) {
   return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}`;
 }
 
+export const timeAgo = (iso: string | null, now = Date.now()) => {
+  if (!iso) return 'never';
+  const m = Math.round((now - new Date(iso).getTime()) / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m} min ago`;
+  if (m < 48 * 60) return `${Math.round(m / 60)} h ago`;
+  return `${Math.round(m / 1440)} days ago`;
+};
+
 export const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 

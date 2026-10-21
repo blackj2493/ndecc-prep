@@ -1,13 +1,14 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { Alert, Image, View } from 'react-native';
+import { View } from 'react-native';
 import { CriteriaBars, TagBars, TimeChart } from '../../components/charts';
 import { Btn, Card, Divider, Empty, H, Input, Row, Screen, Stat, T } from '../../components/ui';
 import { copyForClaude } from '../../lib/export';
 import { REQ_BY_ID } from '../../lib/defaults';
-import { photoUri } from '../../lib/photos';
 import { criteriaStats, fmtDate, fmtMin, median, reqStats } from '../../lib/stats';
 import { pickData, useStore } from '../../lib/store';
 import type { ReqId } from '../../lib/types';
+import { notify } from '../../lib/dialog';
+import { Photo } from '../../components/Photo';
 
 const pct = (n: number | null) => (n == null ? '–' : `${Math.round(n)}%`);
 
@@ -100,7 +101,7 @@ export default function RequirementScreen() {
               subtitle={[a.tags.join(', '), a.notes].filter(Boolean).join(' — ') || 'No notes'}
               right={
                 a.photos[0] ? (
-                  <Image source={{ uri: photoUri(a.photos[0]) }} style={{ width: 40, height: 40, borderRadius: 6 }} />
+                  <Photo name={a.photos[0]} style={{ width: 40, height: 40, borderRadius: 6 }} />
                 ) : undefined
               }
               onPress={() => router.push(`/attempt/${a.id}`)}
@@ -121,7 +122,7 @@ export default function RequirementScreen() {
         icon="doc.on.doc"
         onPress={async () => {
           await copyForClaude(pickData(useStore.getState()), id);
-          Alert.alert('Copied', 'Open the Claude app and paste it into a new chat.');
+          notify('Copied', 'Open the Claude app and paste it into a new chat.');
         }}
       />
     </Screen>

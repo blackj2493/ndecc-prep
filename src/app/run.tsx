@@ -1,11 +1,11 @@
 import { useKeepAwake } from 'expo-keep-awake';
 import { router } from 'expo-router';
 import * as ScreenOrientation from 'expo-screen-orientation';
-import { SymbolView, type SFSymbol } from 'expo-symbols';
+import { Icon, type IconName } from '../components/Icon';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { cancelAlerts, playAlert, scheduleAlerts } from '../lib/alerts';
+import { cancelAlerts, playAlert, scheduleAlerts, unlockAudio } from '../lib/alerts';
 import { REQ_BY_ID } from '../lib/defaults';
 import {
   completeCurrent,
@@ -28,6 +28,7 @@ import {
 import { fmtClock } from '../lib/stats';
 import { useStore } from '../lib/store';
 import type { ActiveRun } from '../lib/types';
+import { confirm } from '../lib/dialog';
 
 // The timer is always dark: easier to read across the bench and kinder to the battery.
 const C = {
@@ -41,7 +42,7 @@ const C = {
   good: '#4ADE80',
 };
 
-function Big({ title, icon, onPress, color, flex }: { title: string; icon: SFSymbol; onPress: () => void; color: string; flex?: number }) {
+function Big({ title, icon, onPress, color, flex }: { title: string; icon: IconName; onPress: () => void; color: string; flex?: number }) {
   return (
     <Pressable
       onPress={onPress}
@@ -58,13 +59,13 @@ function Big({ title, icon, onPress, color, flex }: { title: string; icon: SFSym
         opacity: pressed ? 0.7 : 1,
       })}
     >
-      <SymbolView name={icon} tintColor="#000" size={22} />
+      <Icon name={icon} color="#000" size={22} />
       <Text style={{ color: '#000', fontSize: 18, fontWeight: '700' }}>{title}</Text>
     </Pressable>
   );
 }
 
-function Small({ title, icon, onPress }: { title: string; icon: SFSymbol; onPress: () => void }) {
+function Small({ title, icon, onPress }: { title: string; icon: IconName; onPress: () => void }) {
   return (
     <Pressable
       onPress={onPress}
@@ -79,7 +80,7 @@ function Small({ title, icon, onPress }: { title: string; icon: SFSymbol; onPres
         opacity: pressed ? 0.6 : 1,
       })}
     >
-      <SymbolView name={icon} tintColor={C.text} size={18} />
+      <Icon name={icon} color={C.text} size={18} />
       <Text style={{ color: C.text, fontSize: 12 }}>{title}</Text>
     </Pressable>
   );
@@ -93,6 +94,7 @@ export default function RunScreen() {
   const [now, setNow] = useState(() => Date.now());
   const [banner, setBanner] = useState<{ title: string; body: string; final: boolean; until: number } | null>(null);
   const [landscape, setLandscape] = useState(true);
+  const [showMore, setShowMore] = useState(false);
   const { width, height } = useWindowDimensions();
   const wide = width > height;
 
@@ -118,12 +120,14 @@ export default function RunScreen() {
     return () => clearInterval(t);
   }, [setActiveRun]);
 
+  // iOS web apps cannot lock the orientation; there the layout follows the phone.
   useEffect(() => {
+    if (Platform.OS === 'web') return;
     ScreenOrientation.lockAsync(
       landscape ? ScreenOrientation.OrientationLock.LANDSCAPE : ScreenOrientation.OrientationLock.PORTRAIT_UP,
     ).catch(() => {});
   }, [landscape]);
-  useEffect(() => () => void ScreenOrientation.unlockAsync().catch(() => {}), []);
+  useEffect(() => () => void (Platform.OS !== 'web' && ScreenOrientation.unlockAsync().catch(() => {})), []);
 
   // Reschedule the lock-screen notifications whenever the clock state changes.
   const schedKey = run ? `${run.phase}|${run.currentKey}|${run.sessionIndex}|${run.segStart}` : '';
@@ -144,7 +148,12 @@ export default function RunScreen() {
       </SafeAreaView>
     );
 
-  const set = (fn: (r: ActiveRun, n: number) => ActiveRun) => setActiveRun(fn(run, Date.now()));
+  // Every timer button runs through here, so each tap also keeps web audio unlocked.
+  const set = (fn: (r: ActiveRun, n: number) => ActiveRun) => {
+    unlockAudio();
+    setShowMore(false);
+    setActiveRun(fn(run, Date.now()));
+  };
   const cur = currentItem(run);
   const done = run.items.filter((i) => i.status === 'done').length;
   const sessLen = sessionLengthMs(run);
@@ -160,42 +169,42 @@ export default function RunScreen() {
     router.replace(`/review/${record.id}`);
   };
   const discard = () =>
-    Alert.alert('Discard this run?', 'No times are saved.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Discard',
-        style: 'destructive',
-        onPress: () => {
+    confirm('Discard this run?', 'No times are saved.', 'Discard', () => {
           cancelAlerts().catch(() => {});
           setActiveRun(null);
           router.back();
-        },
-      },
-    ]);
-  const more = () =>
-    Alert.alert(cur ? REQ_BY_ID[cur.reqId].short : 'Run', undefined, [
-      { text: 'Mark a restart (time keeps running)', onPress: () => setActiveRun(markRestart(run)) },
-      { text: 'Do this project later', onPress: () => set(doLater) },
-      { text: 'Skip this project', onPress: () => set(skipCurrent) },
-      {
-        text: 'End the run now',
-        style: 'destructive',
-        onPress: () => set(finishRun),
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+        });
+  const More = showMore && (
+    <Pressable
+      onPress={() => setShowMore(false)}
+      style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: 24, zIndex: 20 }}
+    >
+      <View style={{ backgroundColor: C.panel, borderRadius: 18, padding: 16, gap: 10, maxWidth: 480, width: '100%', alignSelf: 'center' }}>
+        <Text style={{ color: C.muted, fontSize: 15 }}>{cur ? REQ_BY_ID[cur.reqId].short : 'Run'}</Text>
+        <Big title="Mark a restart (time keeps running)" icon="rotate.right" color={C.warn} onPress={() => { setShowMore(false); setActiveRun(markRestart(run)); }} />
+        <Big title="Do this project later" icon="chevron.down" color={C.accent} onPress={() => set(doLater)} />
+        <Big title="Skip this project" icon="xmark" color={C.accent} onPress={() => set(skipCurrent)} />
+        <Big title="End the run now" icon="checkmark" color={C.bad} onPress={() => set(finishRun)} />
+        <Pressable onPress={() => setShowMore(false)} style={{ paddingVertical: 10 }}>
+          <Text style={{ color: C.text, textAlign: 'center', fontSize: 16 }}>Cancel</Text>
+        </Pressable>
+      </View>
+    </Pressable>
+  );
 
   const Header = (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
       <Pressable onPress={() => router.back()} hitSlop={10}>
-        <SymbolView name="chevron.down" tintColor={C.muted} size={22} />
+        <Icon name="chevron.down" color={C.muted} size={22} />
       </Pressable>
       <Text style={{ color: C.muted, fontSize: 15, flex: 1 }} numberOfLines={1}>
         {run.title} · {done}/{run.items.length} done
       </Text>
-      <Pressable onPress={() => setLandscape(!landscape)} hitSlop={10}>
-        <SymbolView name="rotate.right" tintColor={C.muted} size={20} />
-      </Pressable>
+      {Platform.OS !== 'web' && (
+        <Pressable onPress={() => setLandscape(!landscape)} hitSlop={10}>
+          <Icon name="rotate.right" color={C.muted} size={20} />
+        </Pressable>
+      )}
     </View>
   );
 
@@ -318,7 +327,7 @@ export default function RunScreen() {
     <View style={{ flex: wide ? 2 : undefined, gap: 10 }}>
       <View style={{ backgroundColor: C.panel, borderRadius: 18, padding: 14, gap: 2 }}>
         <Text style={{ color: C.muted, fontSize: 13 }}>
-          {sessionName} session {isLastSession ? '(last)' : ''}
+          {run.kind === 'mock' ? `${sessionName} session${isLastSession ? ' (last)' : ''}` : 'Time left in this run'}
         </Text>
         <Text
           style={{
@@ -344,7 +353,7 @@ export default function RunScreen() {
           onPress={() => set(paused ? resumeRun : pauseRun)}
         />
         {!isLastSession && <Small title="Break" icon="cup.and.saucer" onPress={() => set(startBreak)} />}
-        <Small title="More" icon="ellipsis" onPress={more} />
+        <Small title="More" icon="ellipsis" onPress={() => setShowMore(true)} />
       </View>
     </View>
   );
@@ -357,6 +366,7 @@ export default function RunScreen() {
         {Project}
         {Side}
       </View>
+      {More}
     </SafeAreaView>
   );
 }

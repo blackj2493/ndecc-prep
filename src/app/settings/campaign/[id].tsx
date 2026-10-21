@@ -1,11 +1,12 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { Btn, Card, Chip, Divider, Empty, H, Input, Screen, T } from '../../../components/ui';
 import { REQ_BY_ID, REQUIREMENTS } from '../../../lib/defaults';
 import { uid } from '../../../lib/run';
 import { useStore } from '../../../lib/store';
 import type { Campaign, ReqId } from '../../../lib/types';
+import { confirm } from '../../../lib/dialog';
 
 export default function CampaignEditor() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -90,17 +91,10 @@ export default function CampaignEditor() {
           title="Delete this campaign"
           kind="plain"
           onPress={() =>
-            Alert.alert('Delete this campaign?', undefined, [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Delete',
-                style: 'destructive',
-                onPress: () => {
+            confirm('Delete this campaign?', undefined, 'Delete', () => {
                   deleteCampaign(draft.id);
                   router.back();
-                },
-              },
-            ])
+                })
           }
         />
       )}

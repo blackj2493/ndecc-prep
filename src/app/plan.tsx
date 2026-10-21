@@ -1,13 +1,14 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, View } from 'react-native';
-import { SymbolView } from 'expo-symbols';
+import { Pressable, View } from 'react-native';
+import { Icon } from '../components/Icon';
 import { Btn, Card, Divider, H, Input, MinutesField, Screen, T, useTheme } from '../components/ui';
 import { REQ_BY_ID } from '../lib/defaults';
 import { createRun, type PlanItem } from '../lib/run';
 import { fmtMin } from '../lib/stats';
 import { targetFor, useStore } from '../lib/store';
 import type { ReqId } from '../lib/types';
+import { confirm } from '../lib/dialog';
 
 interface Row extends PlanItem {
   include: boolean;
@@ -66,10 +67,7 @@ export default function Plan() {
       router.replace('/run');
     };
     if (activeRun && activeRun.phase !== 'finished')
-      Alert.alert('Replace the current run?', `"${activeRun.title}" is not finished. Its times are lost.`, [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Replace', style: 'destructive', onPress: go },
-      ]);
+      confirm('Replace the current run?', `"${activeRun.title}" is not finished. Its times are lost.`, 'Replace', go);
     else go();
   };
 
@@ -98,10 +96,10 @@ export default function Plan() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, opacity: r.include ? 1 : 0.4 }}>
               <View style={{ gap: 6 }}>
                 <Pressable onPress={() => move(i, -1)} hitSlop={8}>
-                  <SymbolView name="chevron.up" tintColor={i ? c.accent : c.border} size={18} />
+                  <Icon name="chevron.up" color={i ? c.accent : c.border} size={18} />
                 </Pressable>
                 <Pressable onPress={() => move(i, 1)} hitSlop={8}>
-                  <SymbolView name="chevron.down" tintColor={i < rows.length - 1 ? c.accent : c.border} size={18} />
+                  <Icon name="chevron.down" color={i < rows.length - 1 ? c.accent : c.border} size={18} />
                 </Pressable>
               </View>
               <Pressable style={{ flex: 1 }} onPress={() => update(i, { include: !r.include })}>

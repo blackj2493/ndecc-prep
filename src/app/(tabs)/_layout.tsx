@@ -1,10 +1,10 @@
 import { Tabs } from 'expo-router';
-import { SymbolView, type SFSymbol } from 'expo-symbols';
+import { Icon, type IconName } from '../../components/Icon';
 import type { ColorValue } from 'react-native';
 import { useTheme } from '../../components/ui';
 
-function TabIcon({ name, color }: { name: SFSymbol; color: ColorValue }) {
-  return <SymbolView name={name} tintColor={color} size={24} />;
+function TabIcon({ name, color }: { name: IconName; color: ColorValue }) {
+  return <Icon name={name} color={color} size={24} />;
 }
 
 export default function TabLayout() {

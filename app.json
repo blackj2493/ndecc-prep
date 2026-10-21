@@ -20,7 +20,11 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./public/favicon.png",
+      "output": "single",
+      "bundler": "metro",
+      "name": "NDECC Prep",
+      "shortName": "NDECC Prep"
     },
     "plugins": [
       "expo-router",
@@ -39,6 +43,9 @@
       "expo-asset",
       "expo-status-bar"
     ],
-    "scheme": "ndeccprep"
+    "scheme": "ndeccprep",
+    "experiments": {
+      "baseUrl": "/ndecc-prep"
+    }
   }
 }

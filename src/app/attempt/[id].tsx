@@ -1,15 +1,17 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Alert, Image, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Checklist } from '../../components/Checklist';
 import { Btn, Card, Chip, Empty, H, Input, MinutesField, Screen, T } from '../../components/ui';
 import { overallGrade } from '../../lib/criteria';
 import { REQ_BY_ID, REQUIREMENTS } from '../../lib/defaults';
-import { addPhoto, deletePhoto, photoUri } from '../../lib/photos';
+import { addPhoto, deletePhoto } from '../../lib/photos';
 import { uid } from '../../lib/run';
 import { fmtDate } from '../../lib/stats';
 import { useStore } from '../../lib/store';
 import type { Attempt, ReqId } from '../../lib/types';
+import { confirm } from '../../lib/dialog';
+import { Photo } from '../../components/Photo';
 
 export default function AttemptScreen() {
   const { id, reqId } = useLocalSearchParams<{ id: string; reqId?: ReqId }>();
@@ -175,20 +177,13 @@ export default function AttemptScreen() {
           <Pressable
             key={p}
             onLongPress={() =>
-              Alert.alert('Delete this photo?', undefined, [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Delete',
-                  style: 'destructive',
-                  onPress: () => {
+              confirm('Delete this photo?', undefined, 'Delete', () => {
                     deletePhoto(p);
                     patch({ photos: draft.photos.filter((x) => x !== p) });
-                  },
-                },
-              ])
+                  })
             }
           >
-            <Image source={{ uri: photoUri(p) }} style={{ width: 104, height: 104, borderRadius: 8 }} />
+            <Photo name={p} style={{ width: 104, height: 104, borderRadius: 8 }} />
           </Pressable>
         ))}
       </View>
@@ -217,18 +212,11 @@ export default function AttemptScreen() {
           title="Delete this attempt"
           kind="plain"
           onPress={() =>
-            Alert.alert('Delete this attempt?', undefined, [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Delete',
-                style: 'destructive',
-                onPress: () => {
+            confirm('Delete this attempt?', undefined, 'Delete', () => {
                   draft.photos.forEach(deletePhoto);
                   deleteAttempt(draft.id);
                   router.back();
-                },
-              },
-            ])
+                })
           }
         />
       )}

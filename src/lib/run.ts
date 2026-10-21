@@ -187,7 +187,9 @@ export function computeAlerts(run: ActiveRun, now: number): RunAlert[] {
       const add = (id: string, t: number, title: string, final = false) =>
         t > 0 &&
         out.push({ id: `${item.key}:${id}`, at: now + (t - e), title, body: label, final });
-      if (cfg.halfwayAlert) add('half', target / 2, `Halfway: ${plural(Math.round(item.targetSec / 120))} left`);
+      const half = item.targetSec / 2;
+      const halfText = half >= 120 ? plural(Math.round(half / 60)) : `${Math.round(half)} s`;
+      if (cfg.halfwayAlert) add('half', target / 2, `Halfway: ${halfText} left`);
       for (const w of cfg.projectWarnings) add(`w${w}`, target - w * 60000, `${plural(w)} left on this project`);
       if (cfg.endAlert) add('end', target, 'Target time is up', true);
     }

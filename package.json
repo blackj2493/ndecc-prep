@@ -23,18 +23,21 @@
     "expo-sqlite": "~57.0.4",
     "expo-status-bar": "~57.0.1",
     "expo-symbols": "~57.0.3",
+    "idb-keyval": "^6.3.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
     "react-native-svg": "15.15.4",
+    "react-native-web": "^0.21.2",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@types/react": "~19.2.4",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~57.0.2",
+    "gh-pages": "^6.3.0",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -44,7 +47,9 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
-    "test": "npx tsx scripts/test-run.ts"
+    "test": "npx tsx scripts/test-run.ts",
+    "build:web": "expo export -p web && node scripts/postbuild-web.js",
+    "deploy": "npm run build:web && gh-pages --nojekyll -d dist"
   },
   "private": true
 }

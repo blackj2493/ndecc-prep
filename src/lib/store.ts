@@ -1,4 +1,4 @@
-import Storage from 'expo-sqlite/kv-store';
+import { kvStorage } from './kv';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { DEFAULT_CRITERIA } from './criteria';
@@ -26,8 +26,20 @@ export interface Data {
   reqNotes: Partial<Record<ReqId, string>>;
 }
 
+/** Settings and status of the GitHub backup. Local to this device; never in a backup file. */
+export interface CloudState {
+  repo: string;
+  token: string;
+  lastBackupAt: string | null;
+  lastError: string | null;
+  /** Photo file names already in the repository. */
+  uploadedPhotos: string[];
+}
+
 interface State extends Data {
   activeRun: ActiveRun | null;
+  cloud: CloudState;
+  setCloud: (patch: Partial<CloudState>) => void;
   setActiveRun: (run: ActiveRun | null) => void;
   updateSettings: (patch: Partial<Settings>) => void;
   upsertSet: (s: PracticeSet) => void;
@@ -64,6 +76,8 @@ export const useStore = create<State>()(
     (set) => ({
       ...initialData(),
       activeRun: null,
+      cloud: { repo: '', token: '', lastBackupAt: null, lastError: null, uploadedPhotos: [] },
+      setCloud: (patch) => set((s) => ({ cloud: { ...s.cloud, ...patch } })),
       setActiveRun: (activeRun) => set({ activeRun }),
       updateSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
       upsertSet: (item) => set((s) => ({ sets: upsert(s.sets, item) })),
@@ -99,7 +113,7 @@ export const useStore = create<State>()(
     {
       name: 'ndecc-prep',
       version: 2,
-      storage: createJSONStorage(() => Storage),
+      storage: createJSONStorage(() => kvStorage),
       // v2 replaced the free mistake lists with the NDEB checklist.
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown> & { attempts?: Attempt[] };
@@ -127,3 +141,6 @@ export const pickData = (s: State): Data => ({
 
 export const targetFor = (settings: Settings, set: PracticeSet | undefined, reqId: ReqId) =>
   set?.targets[reqId] ?? settings.targets[reqId];
+
+// Debug handle for the browser console on the web build.
+if (typeof window !== 'undefined') (window as unknown as { __ndecc: typeof useStore }).__ndecc = useStore;

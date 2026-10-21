@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { View } from 'react-native';
+import { BackupStatus } from '../../components/BackupStatus';
 import { Btn, Card, Divider, H, Row, Screen, T } from '../../components/ui';
 import { REQUIREMENTS } from '../../lib/defaults';
 import { fmtDate, fmtMin } from '../../lib/stats';
@@ -13,6 +14,7 @@ export default function Practice() {
 
   return (
     <Screen>
+      <BackupStatus />
       {activeRun && activeRun.phase !== 'finished' && (
         <Card>
           <T weight="600">A run is in progress: {activeRun.title}</T>

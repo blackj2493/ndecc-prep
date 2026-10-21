@@ -1,11 +1,12 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { Btn, Card, Divider, H, Input, MinutesField, Screen, T } from '../../../components/ui';
 import { DEFAULT_SEQUENCE, REQ_BY_ID } from '../../../lib/defaults';
 import { uid } from '../../../lib/run';
 import { useStore } from '../../../lib/store';
 import type { PracticeSet, ReqId, ToothSpec } from '../../../lib/types';
+import { confirm } from '../../../lib/dialog';
 
 export default function SetEditor() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -103,17 +104,10 @@ export default function SetEditor() {
           title="Delete this set"
           kind="plain"
           onPress={() =>
-            Alert.alert('Delete this set?', 'Logged attempts stay in the journal.', [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Delete',
-                style: 'destructive',
-                onPress: () => {
+            confirm('Delete this set?', 'Logged attempts stay in the journal.', 'Delete', () => {
                   deleteSet(draft.id);
                   router.back();
-                },
-              },
-            ])
+                })
           }
         />
       )}

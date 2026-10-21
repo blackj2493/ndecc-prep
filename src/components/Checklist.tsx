@@ -1,4 +1,4 @@
-import { SymbolView } from 'expo-symbols';
+import { Icon } from './Icon';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { GRADE_LABEL, overallGrade } from '../lib/criteria';
@@ -18,9 +18,9 @@ export function GradeBadge({ grade }: { grade: Grade | null }) {
   const color = grade === 'C' ? c.good : grade === 'MC' ? c.warn : grade === 'NC' ? c.bad : c.muted;
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-      <SymbolView
+      <Icon
         name={grade === 'NC' ? 'xmark.circle.fill' : grade ? 'checkmark.circle.fill' : 'circle.dashed'}
-        tintColor={color}
+        color={color}
         size={20}
       />
       <T weight="700" style={{ color }}>
@@ -93,7 +93,7 @@ export function Checklist({
                   <T weight="500" size={15} style={{ flexShrink: 1 }}>
                     {cr.name}
                   </T>
-                  <SymbolView name={isOpen ? 'chevron.up' : 'chevron.down'} tintColor={c.muted} size={11} />
+                  <Icon name={isOpen ? 'chevron.up' : 'chevron.down'} color={c.muted} size={11} />
                 </View>
                 {found.length > 0 && (
                   <T size={12} style={{ color: r === 'NC' ? c.bad : c.warn }} numberOfLines={2}>
