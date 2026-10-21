@@ -76,7 +76,7 @@ export const useStore = create<State>()(
     (set) => ({
       ...initialData(),
       activeRun: null,
-      cloud: { repo: '', token: '', lastBackupAt: null, lastError: null, uploadedPhotos: [] },
+      cloud: { repo: 'blackj2493/ndecc-prep-data', token: '', lastBackupAt: null, lastError: null, uploadedPhotos: [] },
       setCloud: (patch) => set((s) => ({ cloud: { ...s.cloud, ...patch } })),
       setActiveRun: (activeRun) => set({ activeRun }),
       updateSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
@@ -112,7 +112,7 @@ export const useStore = create<State>()(
     }),
     {
       name: 'ndecc-prep',
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => kvStorage),
       // v2 replaced the free mistake lists with the NDEB checklist.
       migrate: (persisted, version) => {
@@ -121,6 +121,11 @@ export const useStore = create<State>()(
           delete s.tags;
           s.criteria = DEFAULT_CRITERIA;
           s.attempts = (s.attempts ?? []).map((a) => ({ ...a, ratings: a.ratings ?? {} }));
+        }
+        // v3 prefilled the backup repository.
+        if (version < 3) {
+          const cloud = s.cloud as Partial<CloudState> | undefined;
+          if (cloud && !cloud.repo) s.cloud = { ...cloud, repo: 'blackj2493/ndecc-prep-data' };
         }
         return s as unknown as State;
       },

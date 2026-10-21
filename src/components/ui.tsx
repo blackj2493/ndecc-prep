@@ -224,11 +224,14 @@ export function Input({
   multiline,
   keyboardType,
   style,
+  plain,
 }: {
   value: string;
   onChangeText: (t: string) => void;
   placeholder?: string;
   multiline?: boolean;
+  /** Codes, names and keys: no auto-capitalisation or autocorrect. */
+  plain?: boolean;
   keyboardType?: 'default' | 'number-pad' | 'decimal-pad';
   style?: StyleProp<TextStyle>;
 }) {
@@ -241,6 +244,9 @@ export function Input({
       placeholderTextColor={c.muted}
       multiline={multiline}
       keyboardType={keyboardType}
+      autoCapitalize={plain ? 'none' : undefined}
+      autoCorrect={plain ? false : undefined}
+      spellCheck={plain ? false : undefined}
       style={[
         {
           color: c.text,

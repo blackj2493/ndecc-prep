@@ -73,7 +73,8 @@ export default function DataScreen() {
         <Input
           value={cloud.repo}
           onChangeText={(t) => setCloud({ repo: t.trim(), lastError: null })}
-          placeholder="blackj2493/ndecc-prep-data"
+          placeholder="Type: blackj2493/ndecc-prep-data"
+          plain
         />
         <T muted size={13}>
           Access token
@@ -81,8 +82,14 @@ export default function DataScreen() {
         <Input
           value={cloud.token}
           onChangeText={(t) => setCloud({ token: t.trim(), lastError: null })}
-          placeholder="github_pat_…"
+          placeholder="Paste the token here"
+          plain
         />
+        {cloud.token ? (
+          <T muted size={12}>
+            Token entered: {cloud.token.slice(0, 11)}… ({cloud.token.length} characters)
+          </T>
+        ) : null}
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <Btn
             style={{ flex: 1 }}

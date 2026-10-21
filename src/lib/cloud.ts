@@ -24,7 +24,8 @@ const utf8Base64 = (text: string) => toBase64(new TextEncoder().encode(text));
 
 function config() {
   const { repo, token } = useStore.getState().cloud;
-  if (!repo.trim() || !token.trim()) throw new Error('Cloud backup is not set up.');
+  if (!repo.trim()) throw new Error('The Repository field is empty. Enter blackj2493/ndecc-prep-data.');
+  if (!token.trim()) throw new Error('The Access token field is empty. Paste the token that starts with github_pat_.');
   return { repo: repo.trim(), token: token.trim() };
 }
 
