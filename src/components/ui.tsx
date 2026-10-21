@@ -257,6 +257,8 @@ export function Input({
           paddingVertical: 8,
           fontSize: 16,
           minHeight: multiline ? 90 : undefined,
+          // A web text field keeps a default minimum width; without this, two fields in a row overflow.
+          minWidth: 0,
           textAlignVertical: multiline ? 'top' : 'center',
         },
         style,
@@ -296,7 +298,7 @@ export function MinutesField({
           onChange(isNaN(n) ? 0 : n);
         }}
         keyboardType="number-pad"
-        style={{ color: c.text, fontSize: 17, minWidth: 44, textAlign: 'center', fontVariant: ['tabular-nums'] }}
+        style={{ color: c.text, fontSize: 17, width: 48, textAlign: 'center', fontVariant: ['tabular-nums'] }}
       />
       {btn('+', step)}
     </View>
