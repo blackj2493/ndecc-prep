@@ -35,6 +35,17 @@ export const ICONS = {
   'icloud.and.arrow.up': 'cloud-upload-outline',
   'icloud.and.arrow.down': 'cloud-download-outline',
   'exclamationmark.triangle.fill': 'warning',
+  'chevron.left': 'chevron-back',
+  'pencil.tip': 'brush-outline',
+  'arrow.up.right': 'arrow-forward-outline',
+  circle: 'ellipse-outline',
+  textformat: 'text-outline',
+  mappin: 'location-outline',
+  'arrow.uturn.backward': 'arrow-undo-outline',
+  eye: 'eye-outline',
+  'eye.slash': 'eye-off-outline',
+  trash: 'trash-outline',
+  'pencil.and.outline': 'create',
 } as const;
 
 export type IconName = keyof typeof ICONS;

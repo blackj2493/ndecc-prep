@@ -2,9 +2,28 @@ import * as Clipboard from 'expo-clipboard';
 import { REQ_BY_ID } from './defaults';
 import { criteriaStats, fmtMin, overview } from './stats';
 import type { Data } from './store';
+import type { Attempt } from './types';
 
 const GRADE = { C: 'Competent', MC: 'Minimally competent', NC: 'Not competent' } as const;
 const SHORT = { C: 'OK', MC: 'MC', NC: 'FAIL' } as const;
+
+const clean = (t?: string) => (t ?? '').replace(/\s+/g, ' ').trim();
+
+/** Photo captions, pin notes and text labels of one attempt, in photo order. */
+function photoFeedback(a: Attempt): string {
+  const parts = a.photos.flatMap((p, i) => {
+    const n = a.photoNotes?.[p];
+    if (!n) return [];
+    const pins = n.marks.filter((m) => m.kind === 'pin');
+    const bits = [
+      clean(n.caption),
+      ...pins.map((m, k) => (clean(m.text) ? `pin ${k + 1}: ${clean(m.text)}` : '')),
+      ...n.marks.filter((m) => m.kind === 'text').map((m) => (clean(m.text) ? `label "${clean(m.text)}"` : '')),
+    ].filter(Boolean);
+    return bits.length ? [`photo ${i + 1}: ${bits.join('; ')}`] : [];
+  });
+  return parts.length ? `photo feedback: ${parts.join(' / ')}` : '';
+}
 
 /** A prompt plus the data, for pasting into the Claude app. */
 export function claudeReport(data: Data, reqId?: string): string {
@@ -66,6 +85,7 @@ export function claudeReport(data: Data, reqId?: string): string {
           : '',
         a.tags.length ? `findings: ${a.tags.join(', ')}` : '',
         a.notes ? `notes: ${a.notes.replace(/\s+/g, ' ')}` : '',
+        photoFeedback(a),
       ]
         .filter(Boolean)
         .join(' | '),

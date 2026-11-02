@@ -12,6 +12,9 @@ import { useStore } from '../../lib/store';
 import type { Attempt, ReqId } from '../../lib/types';
 import { confirm } from '../../lib/dialog';
 import { Photo } from '../../components/Photo';
+import { hasNote, pinsOf } from '../../components/PhotoMarks';
+import { PhotoViewer } from '../../components/PhotoViewer';
+import { Icon } from '../../components/Icon';
 
 export default function AttemptScreen() {
   const { id, reqId } = useLocalSearchParams<{ id: string; reqId?: ReqId }>();
@@ -24,6 +27,7 @@ export default function AttemptScreen() {
   const deleteAttempt = useStore((s) => s.deleteAttempt);
   const setCriteria = useStore((s) => s.setCriteria);
 
+  const [viewing, setViewing] = useState<number | null>(null);
   const [draft, setDraft] = useState<Attempt | undefined>(() => {
     if (existing) return existing;
     if (!isNew) return undefined;
@@ -173,19 +177,46 @@ export default function AttemptScreen() {
 
       <H>Photos</H>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        {draft.photos.map((p) => (
-          <Pressable
-            key={p}
-            onLongPress={() =>
-              confirm('Delete this photo?', undefined, 'Delete', () => {
-                    deletePhoto(p);
-                    patch({ photos: draft.photos.filter((x) => x !== p) });
-                  })
-            }
-          >
-            <Photo name={p} style={{ width: 104, height: 104, borderRadius: 8 }} />
-          </Pressable>
-        ))}
+        {draft.photos.map((p, i) => {
+          const n = draft.photoNotes?.[p];
+          const pinCount = pinsOf(n).length;
+          return (
+            <Pressable
+              key={p}
+              onPress={() => setViewing(i)}
+              onLongPress={() =>
+                confirm('Delete this photo?', 'Its notes and markup are deleted too.', 'Delete', () => {
+                  deletePhoto(p);
+                  commit((d) => {
+                    const { [p]: _gone, ...rest } = d.photoNotes ?? {};
+                    return { ...d, photos: d.photos.filter((x) => x !== p), photoNotes: rest };
+                  });
+                })
+              }
+            >
+              <Photo name={p} style={{ width: 104, height: 104, borderRadius: 8 }} />
+              {hasNote(n) && (
+                <View
+                  style={{
+                    position: 'absolute',
+                    right: 4,
+                    bottom: 4,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 3,
+                    paddingHorizontal: 6,
+                    paddingVertical: 2,
+                    borderRadius: 10,
+                    backgroundColor: 'rgba(0,0,0,0.65)',
+                  }}
+                >
+                  <Icon name="pencil.and.outline" color="#fff" size={12} />
+                  {pinCount > 0 && <T size={12} style={{ color: '#fff' }}>{pinCount}</T>}
+                </View>
+              )}
+            </Pressable>
+          );
+        })}
       </View>
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <Btn style={{ flex: 1 }} title="Camera" icon="camera" kind="secondary" onPress={() => photo('camera')} />
@@ -193,8 +224,22 @@ export default function AttemptScreen() {
       </View>
       {draft.photos.length > 0 && (
         <T muted size={12}>
-          Press and hold a photo to delete it.
+          Tap a photo to enlarge it, zoom, add notes, and mark it up. Press and hold a photo to delete it.
         </T>
+      )}
+      {viewing !== null && draft.photos.length > 0 && (
+        <PhotoViewer
+          names={draft.photos}
+          start={viewing}
+          notes={draft.photoNotes}
+          onChange={(name, fn) =>
+            commit((d) => ({
+              ...d,
+              photoNotes: { ...d.photoNotes, [name]: fn(d.photoNotes?.[name] ?? { caption: '', marks: [] }) },
+            }))
+          }
+          onClose={() => setViewing(null)}
+        />
       )}
 
       {isNew ? (

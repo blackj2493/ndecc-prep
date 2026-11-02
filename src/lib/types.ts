@@ -94,6 +94,28 @@ export interface Attempt {
   notes: string;
   /** File names inside the app's photo folder. */
   photos: string[];
+  /** Caption and markup per photo, keyed by photo file name. The photo file itself never changes. */
+  photoNotes?: Record<string, PhotoNote>;
+}
+
+export type MarkKind = 'pen' | 'arrow' | 'circle' | 'text' | 'pin';
+
+/** One mark drawn on a photo. Points are fractions (0-1) of the photo width and height. */
+export interface PhotoMark {
+  id: string;
+  kind: MarkKind;
+  color: string;
+  /** pen: the stroke; arrow: [tail, head]; circle: two corners of its box; text/pin: [position]. */
+  pts: [number, number][];
+  /** Line width (or text size for text) as a fraction of the photo width. */
+  w: number;
+  /** The label for text, the note for a pin. */
+  text?: string;
+}
+
+export interface PhotoNote {
+  caption: string;
+  marks: PhotoMark[];
 }
 
 export interface RunRecord {

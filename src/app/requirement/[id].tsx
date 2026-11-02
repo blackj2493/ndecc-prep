@@ -1,5 +1,6 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, View } from 'react-native';
 import { CriteriaBars, TagBars, TimeChart } from '../../components/charts';
 import { Btn, Card, Divider, Empty, H, Input, Row, Screen, Stat, T } from '../../components/ui';
 import { copyForClaude } from '../../lib/export';
@@ -9,6 +10,8 @@ import { pickData, useStore } from '../../lib/store';
 import type { ReqId } from '../../lib/types';
 import { notify } from '../../lib/dialog';
 import { Photo } from '../../components/Photo';
+import { AnnotatedPhoto, hasNote, pinsOf } from '../../components/PhotoMarks';
+import { PhotoViewer } from '../../components/PhotoViewer';
 
 const pct = (n: number | null) => (n == null ? '–' : `${Math.round(n)}%`);
 
@@ -20,7 +23,13 @@ export default function RequirementScreen() {
   const notes = useStore((s) => s.reqNotes[id] ?? '');
   const setReqNotes = useStore((s) => s.setReqNotes);
   const criteria = useStore((s) => s.criteria[id]);
+  const upsertAttempt = useStore((s) => s.upsertAttempt);
+  const [viewing, setViewing] = useState<{ attemptId: string; index: number } | null>(null);
   const attempts = all.filter((a) => a.reqId === id).sort((a, b) => b.date.localeCompare(a.date));
+  const feedback = attempts.flatMap((a) =>
+    a.photos.map((p, index) => ({ a, p, index, n: a.photoNotes?.[p] })).filter((x) => hasNote(x.n)),
+  );
+  const viewed = viewing && all.find((a) => a.id === viewing.attemptId);
   const s = reqStats(all, id);
 
   const teeth = [...new Set(attempts.map((a) => a.tooth).filter(Boolean))].map((tooth) => {
@@ -88,6 +97,47 @@ export default function RequirementScreen() {
             ))}
           </Card>
         </>
+      )}
+
+      {feedback.length > 0 && (
+        <>
+          <H>Photo feedback</H>
+          <Card>
+            {feedback.map(({ a, p, index, n }, i) => (
+              <View key={p}>
+                {i > 0 && <Divider />}
+                <View style={{ flexDirection: 'row', gap: 12, paddingVertical: 8 }}>
+                  <Pressable onPress={() => setViewing({ attemptId: a.id, index })}>
+                    <AnnotatedPhoto name={p} note={n} size={96} />
+                  </Pressable>
+                  <Pressable style={{ flex: 1, gap: 2 }} onPress={() => router.push(`/attempt/${a.id}`)}>
+                    <T weight="500">{`${fmtDate(a.date)} · ${a.tooth} ${a.surface}`}</T>
+                    {n!.caption.trim() !== '' && <T size={14}>{n!.caption.trim()}</T>}
+                    {pinsOf(n).map((m, k) =>
+                      m.text?.trim() ? (
+                        <T key={m.id} muted size={13}>{`${k + 1}. ${m.text.trim()}`}</T>
+                      ) : null,
+                    )}
+                  </Pressable>
+                </View>
+              </View>
+            ))}
+          </Card>
+          <T muted size={12}>Tap a photo to enlarge it. Tap the text to open the attempt.</T>
+        </>
+      )}
+      {viewed && viewed.photos.length > 0 && (
+        <PhotoViewer
+          names={viewed.photos}
+          start={viewing!.index}
+          notes={viewed.photoNotes}
+          onChange={(name, fn) => {
+            const a = useStore.getState().attempts.find((x) => x.id === viewed.id);
+            if (!a) return;
+            upsertAttempt({ ...a, photoNotes: { ...a.photoNotes, [name]: fn(a.photoNotes?.[name] ?? { caption: '', marks: [] }) } });
+          }}
+          onClose={() => setViewing(null)}
+        />
       )}
 
       <H>Journal</H>
