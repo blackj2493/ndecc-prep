@@ -3,6 +3,8 @@ import { DEFAULT_SETS, DEFAULT_SETTINGS } from '../src/lib/defaults';
 import * as R from '../src/lib/run';
 import { DEFAULT_CRITERIA, overallGrade } from '../src/lib/criteria';
 import { criteriaStats, overview, reqStats } from '../src/lib/stats';
+import * as P from '../src/lib/progress';
+import type { Attempt } from '../src/lib/types';
 
 const M = 60000;
 const set = DEFAULT_SETS[0];
@@ -70,4 +72,58 @@ const cs = criteriaStats(rated, 'mod', DEFAULT_CRITERIA.mod);
 assert.equal(cs.find((x) => x.id === 'depth')!.nc, 1);
 assert.equal(cs.find((x) => x.id === 'width')!.c, 1);
 assert.equal(cs.find((x) => x.id === 'boxSeat')!.rated, 0);
-console.log('all run/stat/checklist checks passed; forecast', ov.forecastSec / 60, 'min');
+
+// Progress: days, weeks, sets and teeth.
+{
+  const mk = (id: string, date: Date, extra: Partial<Attempt> = {}): Attempt => ({
+    id, reqId: 'amalgam', tooth: '2.7', surface: '', date: date.toISOString(), durationSec: 30 * 60, targetSec: 40 * 60,
+    repeats: 0, grade: 'C', ratings: {}, tags: [], notes: '', photos: [], ...extra,
+  });
+  const now = new Date(2026, 10, 5, 15, 0); // Thu Nov 5 2026, 3 pm local
+  const at = (d: number, h = 10) => new Date(2026, 10, d, h, 0);
+  const list = [
+    mk('a', at(2), { setId: 'set1' }),
+    mk('b', at(3, 21), { setId: 'set1', grade: 'NC', durationSec: 50 * 60 }), // late evening stays on Nov 3
+    mk('c', at(4), { setId: 'set2', reqId: 'endo', tooth: '36', grade: 'MC' }),
+    mk('d', at(5), { tooth: '27', grade: null }), // no set; typed "27"
+    mk('e', new Date(2026, 9, 28, 9), { setId: 'set1', grade: 'NC' }), // last week (Wed Oct 28)
+  ];
+  assert.equal(P.dayKey(at(3, 21)), '2026-11-03');
+  assert.equal(P.dayKey(P.weekStart(now)), '2026-11-02');
+  const wc = P.weekCompare(list, now);
+  assert.equal(wc.thisWeek.projects, 4);
+  assert.equal(wc.thisWeek.graded, 3);
+  assert.equal(wc.thisWeek.passed, 2);
+  assert.equal(wc.thisWeek.onTarget, 3);
+  assert.equal(wc.lastWeek.projects, 1);
+  const cal = P.calendar(list, now, 8);
+  assert.equal(cal.length, 56);
+  assert.equal(cal[0].key, '2026-09-14');
+  assert.equal(cal.find((d) => d.today)!.key, '2026-11-05');
+  assert.equal(cal.filter((d) => d.future).length, 3);
+  assert.equal(cal.find((d) => d.key === '2026-11-03')!.count, 1);
+  assert.equal(P.streak(list, now), 4);
+  assert.equal(P.streak(list, new Date(2026, 10, 6, 8)), 4); // nothing yet today: count from yesterday
+  const wk = P.weekly(list, now, 8);
+  assert.equal(wk[7].passPct, 67);
+  assert.equal(wk[6].passPct, 0);
+  assert.equal(wk[0].passPct, null);
+  const log = P.dayLog(list);
+  assert.deepEqual(log.map((d) => d.key), ['2026-11-05', '2026-11-04', '2026-11-03', '2026-11-02', '2026-10-28']);
+  assert.equal(P.vsUsual(list, list[1]), 50 * 60 - 30 * 60); // previous amalgams: 30, 30 min
+  assert.equal(P.vsUsual(list, list[4]), null);
+  const cov = P.setCoverage(DEFAULT_SETS, list, DEFAULT_SETTINGS.sequence);
+  const s1 = cov.find((c) => c.set.id === 'set1')!;
+  assert.equal(s1.total, 3);
+  assert.equal(s1.done, 1);
+  assert.equal(s1.slots.find((x) => x.reqId === 'amalgam')!.count, 3);
+  assert.equal(s1.slots.find((x) => x.reqId === 'amalgam')!.last!.id, 'b');
+  assert.equal(P.noSetCount(DEFAULT_SETS, list), 1);
+  const teeth = P.teethFor('amalgam', DEFAULT_SETS, list);
+  const t27 = teeth.find((t) => t.tooth === '2.7')!;
+  assert.equal(t27.count, 4); // 3 as "2.7" + 1 typed as "27"
+  assert.deepEqual(t27.sets, ['Set 1', 'Set 2']);
+  assert.ok(teeth.some((t) => t.tooth === '4.5' && t.count === 0)); // in Set 3, not done
+  assert.equal(P.teethFor('endo', DEFAULT_SETS, list).find((t) => t.tooth === '3.6')!.count, 1);
+}
+console.log('all run/stat/checklist/progress checks passed; forecast', ov.forecastSec / 60, 'min');

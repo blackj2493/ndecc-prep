@@ -63,6 +63,7 @@ export default function RootLayout() {
         <Stack.Screen name="review/[id]" options={{ title: 'Run review' }} />
         <Stack.Screen name="attempt/[id]" options={{ title: 'Attempt' }} />
         <Stack.Screen name="requirement/[id]" options={{ title: '' }} />
+        <Stack.Screen name="day/[key]" options={{ title: '' }} />
       </Stack>
     </ThemeProvider>
   );

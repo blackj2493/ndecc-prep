@@ -46,6 +46,7 @@ export const ICONS = {
   'eye.slash': 'eye-off-outline',
   trash: 'trash-outline',
   'pencil.and.outline': 'create',
+  calendar: 'calendar-outline',
 } as const;
 
 export type IconName = keyof typeof ICONS;

@@ -29,6 +29,10 @@ export default function TabLayout() {
         options={{ title: 'Journal', tabBarIcon: ({ color }) => <TabIcon name="book.closed" color={color} /> }}
       />
       <Tabs.Screen
+        name="progress"
+        options={{ title: 'Progress', tabBarIcon: ({ color }) => <TabIcon name="calendar" color={color} /> }}
+      />
+      <Tabs.Screen
         name="insights"
         options={{
           title: 'Insights',
