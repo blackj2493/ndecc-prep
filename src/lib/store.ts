@@ -1,7 +1,7 @@
 import { kvStorage } from './kv';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { DEFAULT_CRITERIA } from './criteria';
+import { DEFAULT_CRITERIA, withUndercut } from './criteria';
 import { DEFAULT_SETS, DEFAULT_SETTINGS, IC_CRITICAL, IC_ERRORS } from './defaults';
 import type {
   ActiveRun,
@@ -106,13 +106,15 @@ export const useStore = create<State>()(
         set({
           ...initialData(),
           ...data,
+          // Backups from before 2026-11-06 have no crown prep "Undercut" criterion.
+          criteria: withUndercut({ ...DEFAULT_CRITERIA, ...data.criteria }),
           // Backups from before the checklist have no ratings.
           attempts: data.attempts.map((a) => ({ ...a, ratings: a.ratings ?? {} })),
         }),
     }),
     {
       name: 'ndecc-prep',
-      version: 3,
+      version: 4,
       storage: createJSONStorage(() => kvStorage),
       // v2 replaced the free mistake lists with the NDEB checklist.
       migrate: (persisted, version) => {
@@ -127,6 +129,8 @@ export const useStore = create<State>()(
           const cloud = s.cloud as Partial<CloudState> | undefined;
           if (cloud && !cloud.repo) s.cloud = { ...cloud, repo: 'blackj2493/ndecc-prep-data' };
         }
+        // v4 added the crown prep "Undercut" criterion. Ratings and findings are not changed.
+        if (version < 4 && s.criteria) s.criteria = withUndercut(s.criteria as Record<ReqId, Criterion[]>);
         return s as unknown as State;
       },
     },

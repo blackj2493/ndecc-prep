@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { DEFAULT_SETS, DEFAULT_SETTINGS } from '../src/lib/defaults';
 import * as R from '../src/lib/run';
-import { DEFAULT_CRITERIA, overallGrade } from '../src/lib/criteria';
+import { DEFAULT_CRITERIA, overallGrade, withUndercut } from '../src/lib/criteria';
 import { criteriaStats, overview, reqStats } from '../src/lib/stats';
 import * as P from '../src/lib/progress';
 import type { Attempt } from '../src/lib/types';
@@ -126,4 +126,16 @@ assert.equal(cs.find((x) => x.id === 'boxSeat')!.rated, 0);
   assert.ok(teeth.some((t) => t.tooth === '4.5' && t.count === 0)); // in Set 3, not done
   assert.equal(P.teethFor('endo', DEFAULT_SETS, list).find((t) => t.tooth === '3.6')!.count, 1);
 }
+// Undercut criterion: in the defaults, and added once to an old saved checklist after "Path of draw".
+{
+  const ids = (l: { id: string }[]) => l.map((x) => x.id);
+  assert.equal(ids(DEFAULT_CRITERIA.crownPrep).filter((i) => i === 'undercut').length, 1);
+  const old = { ...DEFAULT_CRITERIA, crownPrep: DEFAULT_CRITERIA.crownPrep.filter((x) => x.id !== 'undercut').map((x) => (x.id === 'taper' ? { ...x, details: [...x.details, 'Mine'] } : x)) };
+  const up = withUndercut(old);
+  assert.deepEqual(ids(up.crownPrep).slice(0, 3), ['taper', 'path', 'undercut']);
+  assert.ok(up.crownPrep[0].details.includes('Mine'));
+  assert.equal(up.mod, old.mod);
+  assert.equal(withUndercut(up), up);
+}
+
 console.log('all run/stat/checklist/progress checks passed; forecast', ov.forecastSec / 60, 'min');

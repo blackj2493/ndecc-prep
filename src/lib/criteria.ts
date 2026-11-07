@@ -65,6 +65,25 @@ function restoration(kind: 'amalgam' | 'class2' | 'class4'): Criterion[] {
   ];
 }
 
+const UNDERCUT = c(
+  'undercut',
+  'Undercut',
+  'C: no undercut on any axial wall. MC: small undercut that a die spacer or block-out can correct. Fail: undercut that stops the crown from seating; the prep must be changed.',
+  ['Buccal', 'Lingual', 'Mesial', 'Distal', 'Under the old restoration'],
+);
+
+/**
+ * Adds the crown prep "Undercut" criterion to a saved checklist that does not have it yet
+ * (checklists saved before 2026-11-06). Puts it after "Path of draw". Keeps all other edits.
+ */
+export function withUndercut(criteria: Record<ReqId, Criterion[]>): Record<ReqId, Criterion[]> {
+  const list = criteria.crownPrep;
+  if (!list || list.some((cr) => cr.id === 'undercut')) return criteria;
+  const at = list.findIndex((cr) => cr.id === 'path');
+  const i = at >= 0 ? at + 1 : Math.min(2, list.length);
+  return { ...criteria, crownPrep: [...list.slice(0, i), UNDERCUT, ...list.slice(i)] };
+}
+
 export const DEFAULT_CRITERIA: Record<ReqId, Criterion[]> = {
   amalgam: restoration('amalgam'),
   class2: restoration('class2'),
@@ -179,6 +198,7 @@ export const DEFAULT_CRITERIA: Record<ReqId, Criterion[]> = {
       'C: no undercuts. MC: undercut a spacer can block. Fail: undercut that needs the prep changed; crown cannot seat or come off.',
       ['Undercut', 'No common path'],
     ),
+    UNDERCUT,
     c(
       'marginHeight',
       'Margin height',
